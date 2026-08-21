@@ -1,6 +1,7 @@
 import {
   buildContext,
   buildMessages,
+  polishAnswer,
   retrieve,
   sourcesFromChunks,
 } from "../src/lib/ragCore.js";
@@ -125,7 +126,7 @@ export default async function handler(req, res) {
     }
 
     const data = await upstream.json();
-    const answer = data?.choices?.[0]?.message?.content?.trim();
+    const answer = polishAnswer(data?.choices?.[0]?.message?.content || "");
     if (!answer) {
       return res.status(502).json({ error: "Empty model response." });
     }

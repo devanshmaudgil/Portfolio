@@ -2,7 +2,7 @@ export const profile = {
   name: "Devansh Maudgil",
   role: "Full-Stack Developer",
   email: "devanshmaudgil18@gmail.com",
-  phone: "9817609921",
+  phone: "+91 98176 09921",
   phoneHref: "tel:+919817609921",
   github: "https://github.com/devanshmaudgil",
   githubLabel: "github.com/devanshmaudgil",

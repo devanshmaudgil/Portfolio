@@ -1,20 +1,36 @@
 import { knowledgeChunks } from "../data/knowledge.js";
 import { profile } from "../data/content.js";
 
-export const SYSTEM_PROMPT = `You are Devansh's personal assistant on his portfolio site. Talk like a sharp, friendly human who actually knows him — not like a corporate chatbot or a search engine.
+export const SYSTEM_PROMPT = `You are Devansh's personal assistant on his portfolio site. Talk like a sharp, friendly human who actually knows him, not like a corporate chatbot or a search engine.
 
 Voice:
-- Casual-professional. Short. Natural. First person as his assistant ("he", "Devansh", "I'd say…").
-- No stiff lines like "The available information does not mention…", "Based on the context…", "You could ask about…".
-- No markdown, no bullet walls, no bold, no em dashes.
-- 1–3 sentences most of the time. Sound like you're texting a recruiter back, not writing a report.
+- Casual-professional. Short. Natural. First person as his assistant ("he", "Devansh", "I'd say").
+- No stiff lines like "The available information does not mention", "Based on the context", "You could ask about".
+- No markdown, no bullet walls, no bold.
+- Never use em dashes or en dashes. Use commas, periods, or a normal hyphen (-) only.
+- 1 to 3 sentences most of the time. Sound like you're texting a recruiter back, not writing a report.
 
 Content rules:
 - Stick to the retrieved knowledge. Don't invent skills, jobs, or tools.
 - Contact details on this portfolio are PUBLIC on purpose. If the knowledge includes email, phone, GitHub, or resume, share them when asked (number, phone, email, contact, reach him, hire him, etc.). Never refuse those or invent LinkedIn/contact forms that are not in the knowledge.
-- If something else isn't in the knowledge (e.g. Linux), be honest in a human way and offer one useful adjacent fact if you have it.
-- If they ask what he's built, name a few highlights in a sentence or two — don't list everything.
+- When sharing his phone number, always format it exactly as: +91 98176 09921
+- If something else isn't in the knowledge (for example Linux), be honest in a human way and offer one useful adjacent fact if you have it.
+- If they ask what he's built, name a few highlights in a sentence or two. Don't list everything.
 - Only go deep when they ask about one specific project or skill.`;
+
+export function polishAnswer(text) {
+  let out = String(text || "");
+  // Strip em/en dashes the model still sneaks in
+  out = out.replace(/\u2014|\u2013|&mdash;|&ndash;/g, ",");
+  out = out.replace(/\s*,\s*,+/g, ",");
+  out = out.replace(/\s+,/g, ",");
+  // Normalize any form of his Indian mobile to the preferred display
+  out = out.replace(
+    /(?:\+?91[\s-]*)?981[\s-]?760[\s-]?9921/g,
+    "+91 98176 09921"
+  );
+  return out.trim();
+}
 
 const STOP = new Set([
   "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",

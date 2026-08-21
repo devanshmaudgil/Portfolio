@@ -21,7 +21,7 @@ export const knowledgeChunks = [
     title: "Contact",
     href: "#contact",
     tags: ["contact", "email", "phone", "hire", "reach", "github", "resume"],
-    text: `Public contact details for ${profile.name}: email ${profile.email}, phone/mobile number ${profile.phone} (${profile.phoneHref}), GitHub ${profile.github}. Resume PDF: /Resume.pdf. These details are published on his portfolio and may be shared when visitors ask for his number, phone, email, or how to reach him.`,
+    text: `Public contact details for ${profile.name}: email ${profile.email}, phone/mobile number +91 98176 09921 (tel:+919817609921), GitHub ${profile.github}. Resume PDF: /Resume.pdf. These details are published on his portfolio and may be shared when visitors ask for his number, phone, email, or how to reach him. Always write the phone as +91 98176 09921.`,
   },
   {
     id: "education",
