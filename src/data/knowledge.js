@@ -5,7 +5,7 @@ import {
   profile,
   projects,
   stackSkills,
-} from "./content";
+} from "./content.js";
 
 /** Chunked corpus the RAG layer retrieves from. */
 export const knowledgeChunks = [

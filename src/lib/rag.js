@@ -28,7 +28,9 @@ export async function askAboutDevansh(query, history = []) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error || `Ask failed (${res.status}).`);
+    throw new Error(
+      data.error || `Ask failed (${res.status}). Check Vercel logs / GROQ_API_KEY.`
+    );
   }
 
   return {

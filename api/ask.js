@@ -5,9 +5,24 @@ import {
   sourcesFromChunks,
 } from "../src/lib/ragCore.js";
 
+export const config = {
+  runtime: "nodejs",
+  maxDuration: 30,
+};
+
 function getApiConfig() {
-  const groqKey = process.env.GROQ_API_KEY?.trim();
-  const openAiKey = process.env.OPENAI_API_KEY?.trim();
+  // Prefer server-only names; accept VITE_ only as a migration fallback
+  // (still server-side here — never ship VITE_ keys to the client bundle).
+  const groqKey = (
+    process.env.GROQ_API_KEY ||
+    process.env.VITE_GROQ_API_KEY ||
+    ""
+  ).trim();
+  const openAiKey = (
+    process.env.OPENAI_API_KEY ||
+    process.env.VITE_OPENAI_API_KEY ||
+    ""
+  ).trim();
 
   if (groqKey) {
     return {
@@ -30,14 +45,22 @@ function getApiConfig() {
   return null;
 }
 
-async function readJson(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? JSON.parse(raw) : {};
+function parseBody(req) {
+  if (req.body == null || req.body === "") return {};
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  if (typeof req.body === "object") return req.body;
+  return {};
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -50,11 +73,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body =
-      typeof req.body === "object" && req.body !== null
-        ? req.body
-        : await readJson(req);
-
+    const body = parseBody(req);
     const query = String(body.query || "").trim();
     const history = Array.isArray(body.history) ? body.history : [];
 
@@ -69,7 +88,8 @@ export default async function handler(req, res) {
     const config = getApiConfig();
     if (!config) {
       return res.status(500).json({
-        error: "Server AI key is not configured.",
+        error:
+          "Server AI key missing. In Vercel → Settings → Environment Variables, add GROQ_API_KEY (Production), then Redeploy.",
       });
     }
 
@@ -95,12 +115,12 @@ export default async function handler(req, res) {
       let detail = "";
       try {
         const err = await upstream.json();
-        detail = err?.error?.message || "";
+        detail = err?.error?.message || JSON.stringify(err);
       } catch {
         detail = "";
       }
-      return res.status(upstream.status).json({
-        error: detail || `AI request failed (${upstream.status}).`,
+      return res.status(502).json({
+        error: detail || `Upstream AI failed (${upstream.status}).`,
       });
     }
 
@@ -116,6 +136,7 @@ export default async function handler(req, res) {
       provider: config.provider,
     });
   } catch (err) {
+    console.error("[api/ask]", err);
     return res.status(500).json({
       error: err?.message || "Ask endpoint failed.",
     });
