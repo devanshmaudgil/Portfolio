@@ -1,0 +1,123 @@
+import {
+  buildContext,
+  buildMessages,
+  retrieve,
+  sourcesFromChunks,
+} from "../src/lib/ragCore.js";
+
+function getApiConfig() {
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  const openAiKey = process.env.OPENAI_API_KEY?.trim();
+
+  if (groqKey) {
+    return {
+      apiKey: groqKey,
+      endpoint: "https://api.groq.com/openai/v1/chat/completions",
+      model: "openai/gpt-oss-120b",
+      provider: "groq",
+    };
+  }
+
+  if (openAiKey) {
+    return {
+      apiKey: openAiKey,
+      endpoint: "https://api.openai.com/v1/chat/completions",
+      model: "gpt-4o-mini",
+      provider: "openai",
+    };
+  }
+
+  return null;
+}
+
+async function readJson(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const raw = Buffer.concat(chunks).toString("utf8");
+  return raw ? JSON.parse(raw) : {};
+}
+
+export default async function handler(req, res) {
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  try {
+    const body =
+      typeof req.body === "object" && req.body !== null
+        ? req.body
+        : await readJson(req);
+
+    const query = String(body.query || "").trim();
+    const history = Array.isArray(body.history) ? body.history : [];
+
+    if (!query) {
+      return res.status(400).json({ error: "Question is required." });
+    }
+
+    if (query.length > 500) {
+      return res.status(400).json({ error: "Question is too long." });
+    }
+
+    const config = getApiConfig();
+    if (!config) {
+      return res.status(500).json({
+        error: "Server AI key is not configured.",
+      });
+    }
+
+    const retrieved = retrieve(query, 8);
+    const chunks = buildContext(query, retrieved);
+    const messages = buildMessages(query, chunks, history);
+
+    const upstream = await fetch(config.endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        temperature: 0.55,
+        max_tokens: 220,
+        messages,
+      }),
+    });
+
+    if (!upstream.ok) {
+      let detail = "";
+      try {
+        const err = await upstream.json();
+        detail = err?.error?.message || "";
+      } catch {
+        detail = "";
+      }
+      return res.status(upstream.status).json({
+        error: detail || `AI request failed (${upstream.status}).`,
+      });
+    }
+
+    const data = await upstream.json();
+    const answer = data?.choices?.[0]?.message?.content?.trim();
+    if (!answer) {
+      return res.status(502).json({ error: "Empty model response." });
+    }
+
+    return res.status(200).json({
+      answer,
+      sources: sourcesFromChunks(chunks),
+      provider: config.provider,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: err?.message || "Ask endpoint failed.",
+    });
+  }
+}

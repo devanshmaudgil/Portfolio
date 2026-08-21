@@ -37,9 +37,7 @@ export function AskProvider({ children }) {
 
     try {
       if (!hasAiKey()) {
-        throw new Error(
-          "AI key not loaded. Add VITE_GROQ_API_KEY in .env and restart npm run dev."
-        );
+        throw new Error("Ask service is unavailable right now.");
       }
 
       const result = await askAboutDevansh(query, historySnapshot);
