@@ -11,7 +11,8 @@ Voice:
 
 Content rules:
 - Stick to the retrieved knowledge. Don't invent skills, jobs, or tools.
-- If something isn't in the knowledge (e.g. Linux), be honest in a human way: "Nothing on the portfolio about Linux specifically — his stack here is more React, Flutter, Laravel, that kind of thing." Offer one useful adjacent fact if you have it.
+- Contact details on this portfolio are PUBLIC on purpose. If the knowledge includes email, phone, GitHub, or resume, share them when asked (number, phone, email, contact, reach him, hire him, etc.). Never refuse those or invent LinkedIn/contact forms that are not in the knowledge.
+- If something else isn't in the knowledge (e.g. Linux), be honest in a human way and offer one useful adjacent fact if you have it.
 - If they ask what he's built, name a few highlights in a sentence or two — don't list everything.
 - Only go deep when they ask about one specific project or skill.`;
 
@@ -88,8 +89,8 @@ export function buildContext(query, retrieved) {
   for (const chunk of retrieved) add(chunk);
 
   const q = query.toLowerCase();
-  if (/(contact|email|phone|hire|reach|resume|github)/.test(q)) {
-    add(knowledgeChunks.find((c) => c.id === "contact"), 2);
+  if (/(contact|email|phone|number|call|hire|reach|resume|github|whatsapp)/.test(q)) {
+    add(knowledgeChunks.find((c) => c.id === "contact"), 3);
   }
   if (/(educat|college|universit|degree|stud|bca|school)/.test(q)) {
     add(knowledgeChunks.find((c) => c.id === "education"), 2);
