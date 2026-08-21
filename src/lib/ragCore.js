@@ -3,6 +3,11 @@ import { profile } from "../data/content.js";
 
 export const SYSTEM_PROMPT = `You are Devansh's personal assistant on his portfolio site. Talk like a sharp, friendly human who actually knows him, not like a corporate chatbot or a search engine.
 
+Scope (strict):
+- You ONLY answer questions about Devansh Maudgil: his work, projects, skills, education, contact, and this portfolio.
+- Refuse coding homework, general tech tutorials, writing code, math, recipes, jokes, news, or anything not about him.
+- If off-topic, say briefly that you only help with questions about Devansh and his work. Do not write code or solve the off-topic request.
+
 Voice:
 - Casual-professional. Short. Natural. First person as his assistant ("he", "Devansh", "I'd say").
 - No stiff lines like "The available information does not mention", "Based on the context", "You could ask about".
@@ -17,6 +22,42 @@ Content rules:
 - If something else isn't in the knowledge (for example Linux), be honest in a human way and offer one useful adjacent fact if you have it.
 - If they ask what he's built, name a few highlights in a sentence or two. Don't list everything.
 - Only go deep when they ask about one specific project or skill.`;
+
+const OFF_TOPIC_REPLY =
+  "I only answer questions about Devansh and his work here. Ask about his projects, skills, experience, education, or how to reach him.";
+
+const PORTFOLIO_HINTS =
+  /\b(devansh|maudgil|portfolio|project|projects|skill|skills|stack|experience|work|shipped|hire|contact|email|phone|number|resume|github|education|bca|college|university|react|flutter|laravel|node|mysql|ats|attendance|f1|fruit|ninja|music|community|hub|ticket|about\s+him|who\s+is|what\s+does\s+he|has\s+he\s+built|tell\s+me\s+about\s+him)\b/i;
+
+const OFF_TOPIC_HINTS =
+  /\b(write|generate|create|code|program|script|function|algorithm|leetcode|homework|solve|python|javascript\s+code|java\s+code|c\+\+|recipe|weather|news|joke|poem|essay|translate|summarize\s+this|chatgpt|prompt)\b/i;
+
+/** Cheap gate: block token burn on homework / general AI misuse. */
+export function isPortfolioQuestion(query) {
+  const q = String(query || "").trim();
+  if (!q) return false;
+
+  const aboutHim = /\b(devansh|maudgil|he|him|his|portfolio)\b/i.test(q);
+  const onTopic = PORTFOLIO_HINTS.test(q);
+  const codeAsk =
+    /\b(generate|write|create|implement|code|program|script|function|algorithm|leetcode|homework|solve)\b/i.test(
+      q
+    ) &&
+    /\b(program|code|script|function|algorithm|app|todo|class|method|python|java|c\+\+|html|css)\b/i.test(
+      q
+    );
+
+  // Coding / generate homework that is not clearly about Devansh
+  if (codeAsk && !aboutHim) return false;
+
+  if (OFF_TOPIC_HINTS.test(q) && !onTopic && !aboutHim) return false;
+
+  return true;
+}
+
+export function offTopicReply() {
+  return OFF_TOPIC_REPLY;
+}
 
 export function polishAnswer(text) {
   let out = String(text || "");

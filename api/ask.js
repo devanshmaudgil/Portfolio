@@ -1,6 +1,8 @@
 import {
   buildContext,
   buildMessages,
+  isPortfolioQuestion,
+  offTopicReply,
   polishAnswer,
   retrieve,
   sourcesFromChunks,
@@ -86,6 +88,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Question is too long." });
     }
 
+    // Block off-topic asks before spending any Groq tokens
+    if (!isPortfolioQuestion(query)) {
+      return res.status(200).json({
+        answer: offTopicReply(),
+        sources: [],
+        provider: "guard",
+      });
+    }
+
     const config = getApiConfig();
     if (!config) {
       return res.status(500).json({
@@ -95,6 +106,16 @@ export default async function handler(req, res) {
     }
 
     const retrieved = retrieve(query, 8);
+    // No useful portfolio match and no strong portfolio cue → don't call the model
+    const best = retrieved[0]?.score || 0;
+    if (best < 1.5 && !/\b(devansh|maudgil|he|him|his)\b/i.test(query)) {
+      return res.status(200).json({
+        answer: offTopicReply(),
+        sources: [],
+        provider: "guard",
+      });
+    }
+
     const chunks = buildContext(query, retrieved);
     const messages = buildMessages(query, chunks, history);
 
